@@ -1,17 +1,54 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { computeAlarm, timeString } from '../src/lib/alarm.ts';
+import { computeAlarm, demoContext, days, timeString } from '../src/lib/alarm.ts';
+import { alarmPolicy } from '../config/backend.ts';
 
 const schedule = { preferred: '07:00', latest: '08:00' };
 
-test('no adjustment with enough sleep or a deficit below 45 minutes', () => {
-  assert.equal(computeAlarm(21 * 60, 480, 60, schedule).time, '07:00');
-  assert.equal(computeAlarm(23 * 60 + 44, 480, 60, schedule).time, '07:00');
+test('default backend policy retains the requested threshold and scaling', () => {
+  assert.equal(alarmPolicy.adjustmentThresholdMinutes, 45);
+  assert.equal(alarmPolicy.deficitScale, 0.5);
 });
 
-test('45-minute threshold enables adjustment, rounded down to five minutes', () => {
-  assert.equal(computeAlarm(23 * 60 + 45, 480, 60, schedule).time, '07:20');
+test('no adjustment with enough sleep or a deficit below the configured threshold', () => {
+  assert.equal(computeAlarm(21 * 60, 480, 60, schedule).time, '07:00');
+  assert.equal(computeAlarm(23 * 60 + alarmPolicy.adjustmentThresholdMinutes - 1, 480, 60, schedule).time, '07:00');
+});
+
+test('configured threshold enables adjustment, rounded down to five minutes', () => {
+  const threshold = alarmPolicy.adjustmentThresholdMinutes;
+  const expectedAdjustment = Math.floor(Math.min(60, threshold * alarmPolicy.deficitScale) / 5) * 5;
+  assert.equal(computeAlarm(23 * 60 + threshold, 480, 60, schedule).adjustment, expectedAdjustment);
   assert.equal(computeAlarm(23 * 60 + 55, 480, 60, schedule).time, '07:25');
+});
+
+test('alternative backend policy controls both threshold and deficit scaling', () => {
+  const policy = { adjustmentThresholdMinutes: 30, deficitScale: 0.25 };
+  assert.equal(computeAlarm(23 * 60 + 29, 480, 60, schedule, null, policy).adjustment, 0);
+  assert.equal(computeAlarm(23 * 60 + 30, 480, 60, schedule, null, policy).adjustment, 5);
+  assert.equal(computeAlarm(24 * 60, 480, 60, schedule, null, policy).adjustment, 15);
+});
+
+test('demo context uses the selected night before and after midnight, including Sunday rollover', () => {
+  assert.deepEqual(demoContext(0, 1380), { morning: 1, currentDay: 0, alarmDayLabel: 'Tomorrow' });
+  assert.deepEqual(demoContext(0, 1440), { morning: 1, currentDay: 1, alarmDayLabel: 'Today' });
+  const sunday = demoContext(6, 1500);
+  assert.equal(days[sunday.currentDay], 'Monday');
+  assert.equal(sunday.morning, 0);
+  assert.equal(sunday.alarmDayLabel, 'Today');
+});
+
+test('shared home/demo alarm uses the selected wake-up schedule and simulated bedtime', () => {
+  const week = days.map(() => ({ preferred: '07:00', latest: '08:00' }));
+  week[5] = { preferred: '08:00', latest: '09:00' };
+  const fridayNight = demoContext(4, 1500);
+  const result = computeAlarm(1500, 480, 20, week[fridayNight.morning]);
+  assert.equal(fridayNight.currentDay, 5);
+  assert.equal(result.time, '08:20');
+  assert.equal(result.sleep, 440);
+  const manual = computeAlarm(1500, 480, 20, week[fridayNight.morning], '09:15');
+  assert.equal(manual.time, '09:15');
+  assert.equal(manual.sleep, 495);
 });
 
 test('maximum adjustment and latest alarm both constrain the result', () => {
@@ -38,7 +75,7 @@ test('manual override takes precedence over preferred, latest, and adjustment li
 });
 
 test('automatic alarms stay within preferred and latest for every demo slider combination', () => {
-  for (let bed = 1260; bed <= 1620; bed += 30) {
+  for (let bed = 1260; bed <= 1620; bed += 5) {
     for (let target = 240; target <= 720; target += 15) {
       for (let max = 0; max <= 60; max += 5) {
         const result = computeAlarm(bed, target, max, schedule);

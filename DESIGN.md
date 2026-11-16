@@ -6,4 +6,5 @@
 - Use a left navigation rail on desktop and a bottom bar on mobile. Stack cards and preserve touch targets on small screens.
 - Use explicit form labels, readable contrast, visible keyboard focus, and native time controls.
 - Persist settings locally. Apply preferences immediately; save or cancel manual alarm changes explicitly. Use 24-hour time.
-- A night belongs to the day it begins; its alarm follows the next morning's schedule. Manual overrides take precedence and expire after their alarm time.
+- A night belongs to the day it begins; its alarm follows the next morning's schedule. Home and Demo share that alarm. The simulated current day switches at midnight, with the header showing the selected bedtime. Manual overrides take precedence until cleared.
+- Keep algorithm policy constants in `config/backend.ts`; derive explanatory threshold copy from that configuration.
