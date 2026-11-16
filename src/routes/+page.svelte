@@ -11,12 +11,12 @@
   ];
   let screen = $state<Screen>('home');
   let schedule = $state<DaySchedule[]>(defaultSchedule());
-  let target = $state(480);
+  let target = $state(8 * 60);
   let maximum = $state(20);
   let override = $state<string | null>(null);
   let ready = $state(false);
   let night = $state(0);
-  let bedtime = $state(1380);
+  let bedtime = $state(23 * 60);
   let editDialog: HTMLDialogElement;
   let draftTime = $state('07:00');
   let context = $derived(demoContext(night, bedtime));
@@ -30,12 +30,12 @@
       const saved = JSON.parse(localStorage.getItem('daybreak-settings') || 'null');
       if (saved) {
         if (Array.isArray(saved.schedule) && saved.schedule.length === 7 && saved.schedule.every((d: DaySchedule) => /^([01]\d|2[0-3]):[0-5]\d$/.test(d.preferred) && /^([01]\d|2[0-3]):[0-5]\d$/.test(d.latest) && d.latest >= d.preferred)) schedule = saved.schedule;
-        if (Number.isInteger(saved.target) && saved.target >= 240 && saved.target <= 720) target = saved.target;
+        if (Number.isInteger(saved.target) && saved.target >= 4 * 60 && saved.target <= 12 * 60) target = saved.target;
         if (Number.isInteger(saved.maximum) && saved.maximum >= 0 && saved.maximum <= 60 && saved.maximum % 5 === 0) maximum = saved.maximum;
         const savedOverride = typeof saved.override === 'string' ? saved.override : saved.override?.time;
         if (typeof savedOverride === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(savedOverride)) override = savedOverride;
         if (Number.isInteger(saved.night) && saved.night >= 0 && saved.night <= 6) night = saved.night;
-        if (Number.isInteger(saved.bedtime) && saved.bedtime >= 1260 && saved.bedtime <= 1620 && saved.bedtime % 5 === 0) bedtime = saved.bedtime;
+        if (Number.isInteger(saved.bedtime) && saved.bedtime >= 21 * 60 && saved.bedtime <= 27 * 60 && saved.bedtime % 5 === 0) bedtime = saved.bedtime;
       }
     } catch { /* Keep defaults if local settings are unavailable. */ }
     ready = true;
@@ -79,7 +79,7 @@
         <div class="alarm-details">
           <div class="eyebrow"><Icon name="alarm" size={20} /><span>Next alarm</span></div>
           <div class="alarm-time">{result.time}</div>
-          <div class="alarm-date">{context.alarmDayLabel}{#if result.sleep <= 600}<span class="time-until">in {duration(result.sleep)}</span>{/if}</div>
+          <div class="alarm-date">{context.alarmDayLabel}{#if result.sleep <= 10 * 60}<span class="time-until">in {duration(result.sleep)}</span>{/if}</div>
           <div class="alarm-actions"><button class="primary-button" onclick={openEdit}><Icon name="edit" size={18} />Edit alarm</button>{#if override}<button class="text-button" onclick={() => override = null}>Clear override</button>{/if}</div>
         </div>
         <div class="clock" aria-label={`Analog clock showing ${result.time}`} role="img">
@@ -108,12 +108,12 @@
       </section>
     {:else if screen === 'preferences'}
       <div class="preferences-stack">
-        <section class="surface preference-card"><div class="section-heading"><h2><Icon name="moon" size={23} />Target sleep duration</h2><span class="value-pill">{duration(target)}</span></div><label class="sr-only" for="sleep-target">Target sleep duration</label><input id="sleep-target" type="range" min="240" max="720" step="15" bind:value={target} /><div class="range-labels"><span>4 hours</span><span>12 hours</span></div><p class="setting-note">7–9 hours is recommended for most adults.</p></section>
+        <section class="surface preference-card"><div class="section-heading"><h2><Icon name="moon" size={23} />Target sleep duration</h2><span class="value-pill">{duration(target)}</span></div><label class="sr-only" for="sleep-target">Target sleep duration</label><input id="sleep-target" type="range" min={4 * 60} max={12 * 60} step="15" bind:value={target} /><div class="range-labels"><span>4 hours</span><span>12 hours</span></div><p class="setting-note">7–9 hours is recommended for most adults.</p></section>
         <section class="surface preference-card"><div class="section-heading"><h2><Icon name="preferences" size={23} />Maximum auto adjustment</h2><span class="value-pill">{maximum} min</span></div><label class="sr-only" for="max-adjustment">Maximum auto adjustment</label><input id="max-adjustment" type="range" min="0" max="60" step="5" bind:value={maximum} /><div class="range-labels"><span>0 min</span><span>60 min</span></div><div class="preference-explanation"><p>Your alarm will never move earlier than your preferred time.</p><p>To keep your wake-up time consistent, most bedtime variations won't change your alarm. Adjustments start only when your estimated sleep falls at least {alarmPolicy.adjustmentThresholdMinutes} minutes short of your target.</p></div></section>
       </div>
     {:else}
       <div class="demo-grid">
-        <section class="surface demo-controls"><h2>Plan a night</h2><label class="field-label" for="night">Night of the week</label><select id="night" bind:value={night}>{#each days as day, i}<option value={i}>{day} night</option>{/each}</select><div class="section-heading bedtime-heading"><label class="field-label" for="bedtime">Bedtime</label><span class="bedtime-value">{timeString(bedtime)}</span></div><input id="bedtime" type="range" min="1260" max="1620" step="5" bind:value={bedtime} /><div class="range-labels"><span>21:00</span><span>03:00</span></div><div class="demo-config"><div><span>Target sleep</span><strong>{duration(target)}</strong></div><div><span>{days[morning]} preferred</span><strong>{schedule[morning].preferred}</strong></div><div><span>{days[morning]} latest</span><strong>{schedule[morning].latest}</strong></div><div><span>Maximum adjustment</span><strong>{maximum} min</strong></div>{#if override}<div><span>Manual override</span><strong>{override}</strong></div>{/if}</div></section>
+        <section class="surface demo-controls"><h2>Plan a night</h2><label class="field-label" for="night">Night of the week</label><select id="night" bind:value={night}>{#each days as day, i}<option value={i}>{day} night</option>{/each}</select><div class="section-heading bedtime-heading"><label class="field-label" for="bedtime">Bedtime</label><span class="bedtime-value">{timeString(bedtime)}</span></div><input id="bedtime" type="range" min={21 * 60} max={27 * 60} step="5" bind:value={bedtime} /><div class="range-labels"><span>21:00</span><span>03:00</span></div><div class="demo-config"><div><span>Target sleep</span><strong>{duration(target)}</strong></div><div><span>{days[morning]} preferred</span><strong>{schedule[morning].preferred}</strong></div><div><span>{days[morning]} latest</span><strong>{schedule[morning].latest}</strong></div><div><span>Maximum adjustment</span><strong>{maximum} min</strong></div>{#if override}<div><span>Manual override</span><strong>{override}</strong></div>{/if}</div></section>
         <section class="demo-result" aria-live="polite"><div class="eyebrow"><Icon name="alarm" size={21} />Scheduled alarm</div><div class="result-time">{result.time}</div><span class="result-day">{days[morning]} morning</span><div class="result-metrics"><div><span>Adjustment</span><strong>{override ? 'Manual override' : result.adjustment ? `+${result.adjustment} min` : 'None'}</strong></div><div><span>Predicted sleep</span><strong>{duration(result.sleep)}</strong></div></div></section>
       </div>
     {/if}
