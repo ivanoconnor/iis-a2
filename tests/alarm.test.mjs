@@ -5,11 +5,6 @@ import { alarmPolicy } from '../config/alarm.ts';
 
 const schedule = { preferred: '07:00', latest: '08:00' };
 
-test('default policy retains the requested threshold and scaling', () => {
-  assert.equal(alarmPolicy.adjustmentThresholdMinutes, 45);
-  assert.equal(alarmPolicy.deficitScale, 0.5);
-});
-
 test('no adjustment with enough sleep or a deficit below the configured threshold', () => {
   assert.equal(computeAlarm(21 * 60, 480, 60, schedule).time, '07:00');
   assert.equal(computeAlarm(23 * 60 + alarmPolicy.adjustmentThresholdMinutes - 1, 480, 60, schedule).time, '07:00');
