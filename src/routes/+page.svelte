@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import Icon from '#lib/Icon.svelte';
   import { computeAlarm, demoContext, days, defaultSchedule, duration, minutes, timeString, type DaySchedule } from '#lib/alarm.ts';
-  import { alarmPolicy } from '../../config/backend.ts';
+  import { alarmPolicy } from '../../config/alarm.ts';
 
   type Screen = 'home' | 'schedule' | 'preferences' | 'demo';
   const navigation: { id: Screen; label: string; icon: string }[] = [

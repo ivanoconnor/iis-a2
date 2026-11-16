@@ -28,9 +28,9 @@ The static build is written to `build/`. Tests use Node 22.6 or newer for TypeSc
 - The selected night and bedtime also persist locally. A fresh demo starts on Monday night at 23:00.
 - A manual override takes precedence over all preferences on both screens and remains active until cleared on Home. Previously saved time/date overrides migrate to the new time-only format.
 
-## Backend policy configuration
+## Policy configuration
 
-`config/backend.ts` defines `alarmPolicy.adjustmentThresholdMinutes` (default `45`) and `alarmPolicy.deficitScale` (default `0.5`, or 50%). These are code-level policy settings, separate from user preferences. This static demo shares the configuration with its client at build time; rebuild after editing it. There is no runtime backend service.
+`config/alarm.ts` defines `alarmPolicy.adjustmentThresholdMinutes` (default `45`) and `alarmPolicy.deficitScale` (default `0.5`, or 50%). These are code-level policy settings, separate from user preferences. This static demo shares the configuration with its client at build time; rebuild after editing it.
 
 For sleep deficit D, adjustment is zero below the configured threshold. Otherwise it is the smaller of the user's maximum and `deficitScale * D`, rounded down to five minutes, then capped at the latest alarm. The preference explanation reads the threshold from the same config.
 

@@ -1,4 +1,4 @@
-import { alarmPolicy, type AlarmPolicy } from '../../config/backend.ts';
+import { alarmPolicy, type AlarmPolicy } from '../../config/alarm.ts';
 
 export type DaySchedule = { preferred: string; latest: string };
 export const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

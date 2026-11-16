@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { computeAlarm, demoContext, days, timeString } from '../src/lib/alarm.ts';
-import { alarmPolicy } from '../config/backend.ts';
+import { alarmPolicy } from '../config/alarm.ts';
 
 const schedule = { preferred: '07:00', latest: '08:00' };
 
-test('default backend policy retains the requested threshold and scaling', () => {
+test('default policy retains the requested threshold and scaling', () => {
   assert.equal(alarmPolicy.adjustmentThresholdMinutes, 45);
   assert.equal(alarmPolicy.deficitScale, 0.5);
 });
@@ -22,7 +22,7 @@ test('configured threshold enables adjustment, rounded down to five minutes', ()
   assert.equal(computeAlarm(23 * 60 + 55, 480, 60, schedule).time, '07:25');
 });
 
-test('alternative backend policy controls both threshold and deficit scaling', () => {
+test('alternative policy controls both threshold and deficit scaling', () => {
   const policy = { adjustmentThresholdMinutes: 30, deficitScale: 0.25 };
   assert.equal(computeAlarm(23 * 60 + 29, 480, 60, schedule, null, policy).adjustment, 0);
   assert.equal(computeAlarm(23 * 60 + 30, 480, 60, schedule, null, policy).adjustment, 5);
