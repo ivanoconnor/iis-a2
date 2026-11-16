@@ -1,54 +1,32 @@
-# sv
+# Daybreak
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A responsive adaptive alarm demo built with Svelte 5, TypeScript, and Tailwind CSS 4.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+## Run
 
 ```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@1.3.0 create --template minimal --types ts --add tailwindcss="plugins:none" --install yarn ./
-```
-
-## Adding features
-
-Add features to your project with `sv add`:
-
-```sh
-npx sv add
-```
-
-For example, to add Tailwind CSS:
-
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
+## Verify
 
 ```sh
+npm run check
+npm test
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+The static build is written to `build/`. Tests use Node 22.6 or newer for TypeScript stripping.
+
+## Behavior
+
+- Home shows the next preferred alarm or the active manual override, with a countdown when it is within ten hours.
+- Schedule sets each morning's preferred and latest alarm. Editing a time keeps latest at or after preferred.
+- Preferences sets the sleep target and maximum automatic adjustment. Changes save immediately in local storage.
+- Demo simulates a selected night and the following morning's schedule. Bedtime ranges from 21:00 to 03:00 in half-hour steps. Simulation does not change the next real calendar alarm on Home.
+- An override chooses the next occurrence of the entered time, takes precedence over all preferences, and expires after that time. Clear it on Home to resume the schedule.
+
+`src/lib/alarm.ts` implements the requested sleep-deficit threshold, half-deficit adjustment, five-minute rounding, maximum adjustment, and latest-time cap. `tests/alarm.test.mjs` covers the boundaries and all demo slider combinations.
+
+See `DESIGN.md` for the persistent visual guidelines.
