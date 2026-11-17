@@ -14,7 +14,7 @@ test('configured threshold enables adjustment, rounded down to five minutes', ()
   const threshold = alarmPolicy.adjustmentThresholdMinutes;
   const expectedAdjustment = Math.floor(Math.min(60, threshold * alarmPolicy.deficitScale) / 5) * 5;
   assert.equal(computeAlarm(23 * 60 + threshold, 8 * 60, 60, schedule).adjustment, expectedAdjustment);
-  assert.equal(computeAlarm(23 * 60 + 55, 8 * 60, 60, schedule).time, '07:25');
+  assert.equal(computeAlarm(23 * 60 + 55, 8 * 60, 60, schedule).adjustment, Math.floor(55 * alarmPolicy.deficitScale / 5) * 5);
 });
 
 test('alternative policy controls both threshold and deficit scaling', () => {
@@ -80,4 +80,44 @@ test('automatic alarms stay within preferred and latest for every demo slider co
       }
     }
   }
+});
+
+test('a 90-minute deficit proposes 30 minutes while keeping 20 until accepted', () => {
+  const policy = { adjustmentThresholdMinutes: 45, deficitScale: 1 / 3 };
+  for (const accepted of [undefined, false, true]) {
+    const result = computeAlarm(24 * 60 + 30, 8 * 60, 20, schedule, null, policy, { maximumConfirmed: 60, accepted });
+    assert.deepEqual(result.proposal, { time: '07:30', adjustment: 30, sleep: 7 * 60 });
+    assert.equal(result.time, accepted ? '07:30' : '07:20');
+    assert.equal(result.adjustment, accepted ? 30 : 20);
+    assert.equal(result.sleep, accepted ? 7 * 60 : 6 * 60 + 50);
+  }
+});
+
+test('proposals respect latest time and disappear when they cannot improve the automatic alarm', () => {
+  const limited = computeAlarm(24 * 60 + 30, 8 * 60, 20, { preferred: '07:00', latest: '07:25' }, null, alarmPolicy, { maximumConfirmed: 60, accepted: true });
+  assert.equal(limited.proposal.adjustment, 25);
+  assert.equal(limited.time, '07:25');
+  for (const latest of ['07:20', '07:10']) {
+    const result = computeAlarm(24 * 60 + 30, 8 * 60, 20, { preferred: '07:00', latest }, null, alarmPolicy, { maximumConfirmed: 60, accepted: true });
+    assert.equal(result.proposal, null);
+    assert.equal(result.time, latest);
+  }
+});
+
+test('confirmation defaults to 45 minutes, caps at 60, and respects smaller limits', () => {
+  assert.equal(computeAlarm(27 * 60, 8 * 60, 20, schedule).proposal.adjustment, 45);
+  assert.equal(computeAlarm(27 * 60, 8 * 60, 20, schedule, null, alarmPolicy, { maximumConfirmed: 90 }).proposal.adjustment, 60);
+  assert.equal(computeAlarm(27 * 60, 8 * 60, 20, schedule, null, alarmPolicy, { maximumConfirmed: 25 }).proposal.adjustment, 25);
+  for (const maximumConfirmed of [0, 15, 20]) {
+    const result = computeAlarm(27 * 60, 8 * 60, 20, schedule, null, alarmPolicy, { maximumConfirmed, accepted: true });
+    assert.equal(result.proposal, null);
+    assert.equal(result.time, '07:20');
+  }
+});
+
+test('threshold and manual overrides also apply to confirmed adjustments', () => {
+  assert.equal(computeAlarm(23 * 60 + 44, 8 * 60, 0, schedule).proposal, null);
+  const manual = computeAlarm(27 * 60, 8 * 60, 20, schedule, '06:30', alarmPolicy, { maximumConfirmed: 60, accepted: true });
+  assert.equal(manual.time, '06:30');
+  assert.equal(manual.proposal, null);
 });

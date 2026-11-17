@@ -15,11 +15,20 @@ export function demoContext(night: number, bedtime: number) {
   };
 }
 
-export function computeAlarm(bedtime: number, target: number, maximumAuto: number, schedule: DaySchedule, override: string | null = null, policy: Readonly<AlarmPolicy> = alarmPolicy) {
+export type AlarmConfirmation = { maximumConfirmed?: number; accepted?: boolean };
+
+export function computeAlarm(bedtime: number, target: number, maximumAuto: number, schedule: DaySchedule, override: string | null = null, policy: Readonly<AlarmPolicy> = alarmPolicy, confirmation: AlarmConfirmation = {}) {
   const preferred = minutes(schedule.preferred) + (24 * 60);
   const latest = minutes(schedule.latest) + (24 * 60);
   const deficit = Math.max(0, target - (preferred - bedtime));
-  const adjustment = deficit < policy.adjustmentThresholdMinutes ? 0 : Math.floor(Math.min(maximumAuto, policy.deficitScale * deficit) / 5) * 5;
-  const scheduled = override ? minutes(override) + (24 * 60) : Math.min(preferred + adjustment, latest);
-  return { time: timeString(scheduled), adjustment: override ? 0 : scheduled - preferred, sleep: Math.max(0, scheduled - bedtime), deficit };
+  const scaledDeficit = deficit < policy.adjustmentThresholdMinutes ? 0 : policy.deficitScale * deficit;
+  const adjustment = Math.floor(Math.min(maximumAuto, scaledDeficit) / 5) * 5;
+  const automatic = Math.min(preferred + adjustment, latest);
+  const confirmedAdjustment = Math.floor(Math.min(60, Math.max(0, confirmation.maximumConfirmed ?? 45), scaledDeficit) / 5) * 5;
+  const proposed = Math.min(preferred + confirmedAdjustment, latest);
+  const proposal = !override && proposed > automatic
+    ? { time: timeString(proposed), adjustment: proposed - preferred, sleep: Math.max(0, proposed - bedtime) }
+    : null;
+  const scheduled = override ? minutes(override) + (24 * 60) : confirmation.accepted && proposal ? proposed : automatic;
+  return { time: timeString(scheduled), adjustment: override ? 0 : scheduled - preferred, sleep: Math.max(0, scheduled - bedtime), deficit, proposal };
 }

@@ -23,3 +23,7 @@ main { grid-column: 2; width: 100%; max-width: 1200px; margin: 0 auto; padding: 
 @media(max-width:390px) { main { padding-inline: 16px; }.sidebar { padding-left: 16px; }.alarm-card { padding: 24px; gap: 10px; }.clock { width: 137px; height: 137px; }.clock-tick { transform-origin: .5px 57.5px; }.clock-number { font-size: 10px; }.twelve { top: 22px; }.three { right: 22px; }.six { bottom: 22px; }.nine { left: 22px; }.hour { height: 30px; }.minute { height: 43px; }.alarm-time { font-size: 57px; }.summary-content strong span { display: block; margin-left: 0; }.header-date { font-size: 10px; }.day-time { font-size: 12px; } }
 @media(prefers-reduced-motion:reduce) { button { transition: none; } }
 
+.confirmation-card { margin-top: 24px; padding: 26px; }
+.confirmation-card p { margin-top: 12px; font-size: 14px; line-height: 1.7; color: #72675c; }
+.confirmation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-top: 20px; }
+
