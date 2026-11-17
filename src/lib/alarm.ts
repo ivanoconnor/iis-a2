@@ -15,11 +15,11 @@ export function demoContext(night: number, bedtime: number) {
   };
 }
 
-export function computeAlarm(bedtime: number, target: number, maximum: number, schedule: DaySchedule, override: string | null = null, policy: Readonly<AlarmPolicy> = alarmPolicy) {
+export function computeAlarm(bedtime: number, target: number, maximumAuto: number, schedule: DaySchedule, override: string | null = null, policy: Readonly<AlarmPolicy> = alarmPolicy) {
   const preferred = minutes(schedule.preferred) + (24 * 60);
   const latest = minutes(schedule.latest) + (24 * 60);
   const deficit = Math.max(0, target - (preferred - bedtime));
-  const adjustment = deficit < policy.adjustmentThresholdMinutes ? 0 : Math.floor(Math.min(maximum, policy.deficitScale * deficit) / 5) * 5;
+  const adjustment = deficit < policy.adjustmentThresholdMinutes ? 0 : Math.floor(Math.min(maximumAuto, policy.deficitScale * deficit) / 5) * 5;
   const scheduled = override ? minutes(override) + (24 * 60) : Math.min(preferred + adjustment, latest);
   return { time: timeString(scheduled), adjustment: override ? 0 : scheduled - preferred, sleep: Math.max(0, scheduled - bedtime), deficit };
 }

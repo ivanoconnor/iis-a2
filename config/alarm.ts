@@ -6,5 +6,5 @@ export type AlarmPolicy = {
 
 export const alarmPolicy: Readonly<AlarmPolicy> = {
   adjustmentThresholdMinutes: 45,
-  deficitScale: 0.5
+  deficitScale: 0.3334
 };
