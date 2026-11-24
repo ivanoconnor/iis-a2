@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import Icon from '#lib/Icon.svelte';
   import { computeAlarm, demoContext, days, defaultSchedule, duration, minutes, timeString, type DaySchedule } from '#lib/alarm.ts';
-  import { alarmPolicy } from '../../config/alarm.ts';
+  import { alarmPolicy as defaultAlarmPolicy } from '#lib/alarm.ts';
 
   type Screen = 'home' | 'schedule' | 'preferences' | 'demo';
   const navigation: { id: Screen; label: string; icon: string }[] = [
@@ -12,7 +12,8 @@
   let screen = $state<Screen>('home');
   let schedule = $state<DaySchedule[]>(defaultSchedule());
   let target = $state(8 * 60);
-  const maximumAdjustment = Math.min(Math.floor((90 * alarmPolicy.deficitScale)/5) * 5, 45);
+  let alarmPolicy = $state({ ...defaultAlarmPolicy });
+  let maximumAdjustment = $derived(Math.min(Math.floor((90 * alarmPolicy.deficitScale)/5) * 5, 45));
   let maximum = $state(20);
   let maximumConfirmed = $state(45);
   let confirmation = $state<{ key: string; accepted: boolean } | null>(null);
@@ -24,7 +25,7 @@
   let draftTime = $state('07:00');
   let context = $derived(demoContext(night, bedtime));
   let morning = $derived(context.morning);
-  let confirmationKey = $derived(JSON.stringify([night, bedtime, target, maximum, maximumConfirmed, schedule[morning], override]));
+  let confirmationKey = $derived(JSON.stringify([night, bedtime, target, maximum, maximumConfirmed, schedule[morning], override, alarmPolicy]));
   let decision = $derived(confirmation?.key === confirmationKey ? confirmation.accepted : null);
   let result = $derived(computeAlarm(bedtime, target, maximum, schedule[morning], override, alarmPolicy, { maximumConfirmed, accepted: decision === true }));
   let hourAngle = $derived(minutes(result.time) / 60 * 30);
@@ -34,6 +35,8 @@
     try {
       const saved = JSON.parse(localStorage.getItem('daybreak-settings') || 'null');
       if (saved) {
+        if (Number.isInteger(saved.alarmPolicy?.adjustmentThresholdMinutes) && saved.alarmPolicy.adjustmentThresholdMinutes >= 0 && saved.alarmPolicy.adjustmentThresholdMinutes <= 180) alarmPolicy.adjustmentThresholdMinutes = saved.alarmPolicy.adjustmentThresholdMinutes;
+        if (Number.isFinite(saved.alarmPolicy?.deficitScale) && saved.alarmPolicy.deficitScale >= 0 && saved.alarmPolicy.deficitScale <= 1) alarmPolicy.deficitScale = saved.alarmPolicy.deficitScale;
         if (Array.isArray(saved.schedule) && saved.schedule.length === 7 && saved.schedule.every((d: DaySchedule) => /^([01]\d|2[0-3]):[0-5]\d$/.test(d.preferred) && /^([01]\d|2[0-3]):[0-5]\d$/.test(d.latest) && d.latest >= d.preferred)) schedule = saved.schedule;
         if (Number.isInteger(saved.target) && saved.target >= 4 * 60 && saved.target <= 12 * 60) target = saved.target;
         if (Number.isInteger(saved.maximum) && saved.maximum >= 0 && saved.maximum <= 60 && saved.maximum % 5 === 0) maximum = saved.maximum <= maximumAdjustment ? saved.maximum : 0;
@@ -48,7 +51,10 @@
     ready = true;
   });
   $effect(() => {
-    if (ready) try { localStorage.setItem('daybreak-settings', JSON.stringify({ schedule, target, maximum, maximumConfirmed, confirmation, override, night, bedtime })); } catch { /* Settings remain usable in memory. */ }
+    if (ready) try { localStorage.setItem('daybreak-settings', JSON.stringify({ schedule, target, maximum, maximumConfirmed, confirmation, override, night, bedtime, alarmPolicy })); } catch { /* Settings remain usable in memory. */ }
+  });
+  $effect(() => {
+    if (maximum > maximumAdjustment) maximum = maximumAdjustment;
   });
   // A decision applies only to the current night and settings, even if a slider is later moved back.
   $effect(() => {
@@ -146,6 +152,21 @@
           <div class="range-labels"><span>0 min</span><span>60 min</span></div>
           <p class="setting-note">For larger bedtime changes, we'll ask before moving your alarm beyond the automatic limit. This is the total adjustment from your preferred time, capped by your latest alarm. Without your acceptance, the automatic adjustment stays in place.</p>
         </section>
+        <details class="surface preference-card advanced-preferences">
+          <summary>Advanced</summary>
+          <div class="advanced-setting">
+            <div class="section-heading"><label for="adjustment-threshold">Adjustment threshold</label><span class="value-pill">{alarmPolicy.adjustmentThresholdMinutes} min</span></div>
+            <input id="adjustment-threshold" type="range" min="0" max="180" step="1" bind:value={alarmPolicy.adjustmentThresholdMinutes} aria-describedby="threshold-description" aria-valuetext={`${alarmPolicy.adjustmentThresholdMinutes} minutes`} />
+            <div class="range-labels"><span>0 min</span><span>180 min</span></div>
+            <p id="threshold-description" class="setting-note">Start adjusting only when estimated sleep is this many minutes below your target.</p>
+          </div>
+          <div class="advanced-setting">
+            <div class="section-heading"><label for="deficit-scale">Deficit scale</label><span class="value-pill">{Number((alarmPolicy.deficitScale * 100).toFixed(2))}%</span></div>
+            <input id="deficit-scale" type="range" min="0" max="1" step="0.001" bind:value={alarmPolicy.deficitScale} aria-describedby="scale-description" aria-valuetext={`${Number((alarmPolicy.deficitScale * 100).toFixed(2))} percent`} />
+            <div class="range-labels"><span>0%</span><span>100%</span></div>
+            <p id="scale-description" class="setting-note">The share of missing sleep added to your alarm, rounded down to five minutes and capped by your adjustment limits and latest alarm. Lowering this also reduces the available automatic adjustment limit.</p>
+          </div>
+        </details>
       </div>
     {:else}
       <div class="demo-grid">

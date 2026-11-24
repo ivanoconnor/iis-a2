@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { computeAlarm, demoContext, days, timeString } from '../src/lib/alarm.ts';
-import { alarmPolicy } from '../config/alarm.ts';
+import { alarmPolicy } from '../src/lib/alarm.ts';
 
 const schedule = { preferred: '07:00', latest: '08:00' };
 

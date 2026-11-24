@@ -1,4 +1,12 @@
-import { alarmPolicy, type AlarmPolicy } from '../../config/alarm.ts';
+export type AlarmPolicy = {
+  adjustmentThresholdMinutes: number;
+  deficitScale: number;
+};
+
+export const alarmPolicy: Readonly<AlarmPolicy> = {
+  adjustmentThresholdMinutes: 45,
+  deficitScale: 0.334
+};
 
 export type DaySchedule = { preferred: string; latest: string; };
 export const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
